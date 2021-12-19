@@ -4,6 +4,10 @@
   "description": "RepoMetadata",
   "type": "object",
   "properties": {
+    "version": {
+      "type": "number",
+      "description": "Internal schema version"
+    },
     "authorIds": {
       "type": "array",
       "description": "The Dev Library ID of the author(s)",
@@ -36,7 +40,8 @@
     },
     "content": {
       "type": "string",
-      "description": "File name of the main markdown file in the repo (ex: README.md)"
+      "description": "File name of the main markdown file in the repo (ex: README.md)",
+      "pattern": "^[\\w\\/\\.\\-]+$"
     },
     "tags": {
       "type": "array",
