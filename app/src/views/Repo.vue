@@ -178,6 +178,7 @@ import {
 } from "../../../shared/types";
 import * as util from "../../../shared/util";
 import { fetchAuthor, fetchRepo, fetchRepoPage } from "@/plugins/data";
+import { waitForHljsLoad } from "@/plugins/preload";
 import { getStyle, ProductStyle } from "@/model/product";
 
 // Global HLJS
@@ -211,21 +212,31 @@ export default class Repo extends Vue {
 
     this.uiModule.waitFor(p);
 
-    // After contetn has loaded, highlight all code blocks with HLJS
-    p.then(() => {
+    // After content has loaded, highlight all code blocks with HLJS
+    p.then(() => waitForHljsLoad()).then(() => {
       hljs && hljs.highlightAll();
     });
   }
 
   async loadContent() {
-    this.repo = await fetchRepo(this.productKey, this.id);
+    const repo = await fetchRepo(this.productKey, this.id);
+    if (repo) {
+      this.repo = repo;
+    } else {
+      this.$router.push("/404");
+      return;
+    }
 
     const authorIds = this.repo.metadata.authorIds || [];
     for (const aid of authorIds) {
       // We don't want a failed author fetch to block the rest of the page rendering
       try {
         const data = await fetchAuthor(aid);
-        this.authors.push(data);
+        if (data) {
+          this.authors.push(data);
+        } else {
+          console.warn(`Author not found: ${aid}`);
+        }
       } catch (e) {
         console.warn(`Failed to fetch author ${aid}`, e);
       }
@@ -236,7 +247,13 @@ export default class Repo extends Vue {
       util.cleanPagePath(this.repo.metadata.content);
     const pageKey = btoa(pagePath);
 
-    this.content = await fetchRepoPage(this.productKey, this.id, pageKey);
+    const content = await fetchRepoPage(this.productKey, this.id, pageKey);
+    if (content) {
+      this.content = content;
+    } else {
+      this.$router.push("/404");
+      return;
+    }
   }
 
   public fullPagePath(path?: string) {
